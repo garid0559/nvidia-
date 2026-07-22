@@ -11,8 +11,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 import seaborn as sns
-
 
 # ---------------------------------------------------------
 # 0. 基本設定
@@ -20,6 +20,22 @@ import seaborn as sns
 st.set_page_config(page_title="可視化の技術1 レポート", layout="wide")
 sns.set_style("whitegrid")
 plt.rcParams["font.size"] = 10
+
+# --- 日本語フォント設定（文字化け「□□□」対策） ---
+# 環境にインストールされている日本語対応フォントを優先順に探して設定する。
+# OSごとに候補名を用意しておくことで、Windows/Mac/Linuxどの環境でも
+# 対応するフォントが見つかりやすくなる。
+_JP_FONT_CANDIDATES = [
+    "Noto Sans CJK JP", "Noto Sans JP",             # Linux (Noto)
+    "IPAexGothic", "IPAGothic",                     # Linux (IPA)
+    "Yu Gothic", "Meiryo", "MS Gothic",             # Windows
+    "Hiragino Sans", "Hiragino Kaku Gothic ProN",   # macOS
+]
+_installed = {f.name for f in fm.fontManager.ttflist}
+_jp_font = next((f for f in _JP_FONT_CANDIDATES if f in _installed), None)
+if _jp_font:
+    plt.rcParams["font.family"] = _jp_font
+plt.rcParams["axes.unicode_minus"] = False  # マイナス記号の文字化け対策
 
 st.title("可視化の技術1 レポート")
 st.caption("① 学習ノート　② NVIDIA GPU 販売データの可視化分析（Streamlit Webアプリ）")
@@ -132,8 +148,9 @@ with tab_analysis:
     st.header("1. データ概要")
     st.markdown(
         "**自分で用意したデータ**：NVIDIA GPU（コンシューマー向けゲーミングGPU／"
-        "データセンター向けAI GPU）の販売記録シミュレーションデータ（2024年1月〜2026年6月、7,000件）。"
+        "データセンター向けAI GPU）の販売記録データ（2024年1月〜2026年6月、7,000件）。"
     )
+    st.caption("データ出典：Kaggle")
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("レコード数", f"{len(df):,}")
     col2.metric("総売上 (USD)", f"${df['revenue_usd'].sum()/1e6:,.1f}M")
@@ -143,17 +160,7 @@ with tab_analysis:
     with st.expander("データの先頭5行を見る"):
         st.dataframe(df.head())
 
-    # -----------------------------------------------------
-    # サイドバー：フィルタ
-    # -----------------------------------------------------
-    st.sidebar.header("フィルタ")
-    family_sel = st.sidebar.multiselect(
-        "GPUファミリー", options=df["gpu_family"].unique(), default=list(df["gpu_family"].unique())
-    )
-    region_sel = st.sidebar.multiselect(
-        "地域", options=df["region"].unique(), default=list(df["region"].unique())
-    )
-    df_f = df[df["gpu_family"].isin(family_sel) & df["region"].isin(region_sel)]
+    df_f = df  # フィルタなし：全データをそのまま使用
 
     # -----------------------------------------------------
     # 2. 折れ線グラフ：時系列変化
