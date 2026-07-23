@@ -138,14 +138,6 @@ st.dataframe(df)         # 表を表示
 st.pyplot(fig)           # matplotlib/seabornの図を表示
 st.sidebar.multiselect(...)  # フィルタUI
 ```
-"""
-        )
-
-    st.info(
-        "💡 SQL初心者向けメモ：pandas の `groupby().agg()` は SQL の "
-        "`GROUP BY` + `SUM()/AVG()` と同じ発想. `df[df.col=='X']` は "
-        "`WHERE col='X'` に相当する。"
-    )
 
 # ===========================================================
 # TAB 2: データ分析レポート
