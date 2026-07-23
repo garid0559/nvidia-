@@ -59,7 +59,7 @@ st.title("可視化の技術2学期 レポート")
 st.caption("1.学習ノート　2. NVIDIA GPU 販売データの可視化分析（Streamlit Webアプリ）")
 st.caption("学籍番号：26366030　氏名：ガリダ")
 
-tab_notes, tab_analysis = st.tabs(["📓 学習ノート", "📊 データ分析レポート"])
+tab_notes, tab_analysis = st.tabs(["学習ノート", "データ分析レポート"])
 
 # ===========================================================
 # TAB 1: 学習ノート
