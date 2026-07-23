@@ -4,7 +4,7 @@
 2. NVIDIA GPU 販売データの可視化・分析
 
 実行方法:
-    streamlit run app_report_fixed.py
+    streamlit run app_report_final_v2.py
 """
 
 import streamlit as st
@@ -14,38 +14,52 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import seaborn as sns
 import os
+import requests
 
 # ---------------------------------------------------------
-# 0. 基本設定
+# 0. 基本設定 & フォント対策
 # ---------------------------------------------------------
 st.set_page_config(page_title="可視化の技術1 レポート", layout="wide")
 
-# --- 日本語フォント設定（文字化け「□□□」対策） ---
-# matplotlib のスタイルを設定した後にフォントを設定する必要がある
-sns.set_style("whitegrid")
+@st.cache_resource
+def setup_font():
+    """
+    Streamlit Cloud 環境で日本語フォントを確実に表示させるための設定。
+    Google Fonts から Noto Sans JP をダウンロードして matplotlib に登録する。
+    """
+    font_url = "https://github.com/google/fonts/raw/main/ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf"
+    font_path = "NotoSansJP.ttf"
+    
+    # フォントファイルがない場合はダウンロード
+    if not os.path.exists(font_path):
+        try:
+            response = requests.get(font_url)
+            with open(font_path, "wb") as f:
+                f.write(response.content)
+        except Exception as e:
+            return None
 
-# システム内の日本語フォントを明示的に指定
-# fc-list の結果から確実に存在するフォントを選択
-_JP_FONT_PATH = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
-if os.path.exists(_JP_FONT_PATH):
-    prop = fm.FontProperties(fname=_JP_FONT_PATH)
-    plt.rcParams["font.family"] = prop.get_name()
+    # matplotlib にフォントを追加
+    fm.fontManager.addfont(font_path)
+    font_name = fm.FontProperties(fname=font_path).get_name()
+    return font_name
+
+# フォントの設定を実行
+font_name = setup_font()
+if font_name:
+    plt.rcParams["font.family"] = font_name
+    sns.set_style("whitegrid", {"font.family": [font_name]})
 else:
-    # フォールバック
-    _JP_FONT_CANDIDATES = ["Noto Sans CJK JP", "IPAGothic", "IPAexGothic"]
-    _installed = {f.name for f in fm.fontManager.ttflist}
-    _jp_font = next((f for f in _JP_FONT_CANDIDATES if f in _installed), None)
-    if _jp_font:
-        plt.rcParams["font.family"] = _jp_font
+    sns.set_style("whitegrid")
 
 plt.rcParams["font.size"] = 10
 plt.rcParams["axes.unicode_minus"] = False  # マイナス記号の文字化け対策
 
 st.title("可視化の技術2学期 レポート")
-st.caption("1.学習ノート　2. NVIDIA GPU 販売データの可視化分析（Streamlit Webアプリ）
-学籍番号：26366030　氏名：ガリダ")
+st.caption("1.学習ノート　2. NVIDIA GPU 販売データの可視化分析（Streamlit Webアプリ）")
+st.caption("学籍番号：26366030　氏名：ガリダ")
 
-tab_notes, tab_analysis = st.tabs([" 学習ノート", " データ分析レポート"])
+tab_notes, tab_analysis = st.tabs(["📓 学習ノート", "📊 データ分析レポート"])
 
 # ===========================================================
 # TAB 1: 学習ノート
@@ -96,7 +110,7 @@ with tab_notes:
     with st.expander("第8〜9回：関係の可視化／複数手法の組み合わせ"):
         st.markdown(
             """
-- **散布図**：2変数の関係を点で表現。右上がり＝正の相関、右下がり＝負の相関。回帰式で予測にも使える。
+- **散布図**：2変数の関係を点で表現。右上がり＝正의 相関、右下がり＝負の相関。回帰式で予測にも使える。
 - **チャートジャンク**：意味のない3D化や過剰装飾はノイズとなり読者の負荷を増やすだけなので避ける。
 - 色は「カテゴリを区別する」目的以外に使いすぎない（多すぎる色分けは逆効果）。
 """
@@ -143,10 +157,8 @@ with tab_analysis:
     # -------------------------------------------------------
     @st.cache_data
     def load_data():
-        # ファイルが存在しない場合のダミーデータ作成（デモ用）
         file_path = "nvidia_gpu_sales_synthetic_2026.csv"
         if not os.path.exists(file_path):
-            # ダミーデータの生成
             dates = pd.date_range(start="2024-01-01", end="2026-06-30", freq="D")
             data = {
                 "sale_date": np.random.choice(dates, 7000),
@@ -188,7 +200,6 @@ with tab_analysis:
     with st.expander("データの先頭5行を見る"):
         st.dataframe(df.head())
 
-    # ユーザーの要望により、フィルタを削除し全データを使用
     df_f = df 
 
     # -----------------------------------------------------
@@ -210,12 +221,6 @@ with tab_analysis:
     fig.tight_layout()
     st.pyplot(fig)
 
-    st.markdown(
-        "**考察：** Data Center AI 系（H100/H200/B200等）の売上は単価が高いため、"
-        "件数は少なくても月次売上への影響が大きい。時期が進むにつれて両ファミリーとも"
-        "取引が増加傾向にあることが読み取れる。"
-    )
-
     # -----------------------------------------------------
     # 3. 棒グラフ：カテゴリ比較
     # -----------------------------------------------------
@@ -231,11 +236,6 @@ with tab_analysis:
     plt.setp(ax2.get_xticklabels(), rotation=30, ha="right")
     fig2.tight_layout()
     st.pyplot(fig2)
-
-    st.markdown(
-        "**考察：** 北米・欧州が売上の中心。中国は Data Center AI 向けの輸出規制の影響で"
-        "在庫が絞られており（後述の在庫状況グラフ参照）、他地域と比べ AI GPU の比率が低い。"
-    )
 
     # -----------------------------------------------------
     # 4. 円グラフ：構成比
@@ -255,70 +255,6 @@ with tab_analysis:
     ax3.set_title("販売チャネル構成比")
     st.pyplot(fig3)
 
-    st.markdown(
-        "**考察：** Retail/Etail がコンシューマー向け販売の中心である一方、"
-        "Cloud Provider や Direct Enterprise は AI GPU 特有のチャネルとして機能している。"
-    )
-
-    # -----------------------------------------------------
-    # 5. 散布図：関係
-    # -----------------------------------------------------
-    st.header("5. 散布図：価格プレミアムと顧客満足度の関係（関係）")
-
-    fig4, ax4 = plt.subplots(figsize=(7, 4.5))
-    sns.scatterplot(
-        data=df_f, x="price_premium_pct", y="customer_satisfaction_score",
-        hue="gpu_family", alpha=0.4, s=20, ax=ax4
-    )
-    ax4.set_xlabel("価格プレミアム (%)")
-    ax4.set_ylabel("顧客満足度スコア")
-    ax4.set_title("価格プレミアム vs 顧客満足度")
-    fig4.tight_layout()
-    st.pyplot(fig4)
-
-    st.markdown(
-        "**考察：** 価格プレミアムが高いほど顧客満足度が下がる負の関係が見られる。"
-        "特にコンシューマーゲーミング GPU は価格に敏感な傾向がある一方、"
-        "Data Center AI は多少のプレミアムでも満足度の低下が緩やかである。"
-    )
-
-    # -----------------------------------------------------
-    # 6. 箱ひげ図：分布
-    # -----------------------------------------------------
-    st.header("6. 箱ひげ図：在庫状況別の価格プレミアム分布（分布）")
-
-    fig5, ax5 = plt.subplots(figsize=(8, 4.5))
-    order = ["In Stock", "Low Stock", "Backordered", "Sold Out"]
-    sns.boxplot(data=df_f, x="stock_status", y="price_premium_pct", order=order, ax=ax5)
-    ax5.set_xlabel("在庫状況")
-    ax5.set_ylabel("価格プレミアム (%)")
-    ax5.set_title("在庫状況別 価格プレミアムの分布")
-    fig5.tight_layout()
-    st.pyplot(fig5)
-
-    st.markdown(
-        "**考察：** 在庫が少なくなるほど（Sold Out に近づくほど）価格プレミアムの"
-        "中央値・ばらつきが大きくなっている。品薄状態が転売・値上がりに直結していることがわかる。"
-    )
-
-    # -----------------------------------------------------
-    # 7. ヒストグラム：分布
-    # -----------------------------------------------------
-    st.header("7. ヒストグラム：一取引あたりの販売台数分布（分布）")
-
-    fig6, ax6 = plt.subplots(figsize=(8, 4.5))
-    ax6.hist(df_f["units_sold"], bins=30, color="steelblue", edgecolor="white")
-    ax6.set_xlabel("販売台数（1取引あたり）")
-    ax6.set_ylabel("件数")
-    ax6.set_title("1取引あたりの販売台数の分布")
-    fig6.tight_layout()
-    st.pyplot(fig6)
-
-    st.markdown(
-        "**考察：** 分布は右に裾を引く形（右に歪んだ分布）になっており、多くの取引は"
-        "少量（小売中心）だが、一部に大口注文（企業・クラウド事業者向け）が存在することを示している。"
-    )
-
     # -----------------------------------------------------
     # 8. 相関ヒートマップ：構造
     # -----------------------------------------------------
@@ -334,8 +270,3 @@ with tab_analysis:
     fig7.tight_layout()
     st.pyplot(fig7)
 
-    st.markdown(
-        "**考察：** `price_premium_pct` と `customer_satisfaction_score` は負の相関、"
-        "`avg_street_price_usd` と `revenue_usd` は正の相関が明確。単価が高いDCモデルほど"
-        "売上への寄与が大きい構造が数値からも裏付けられる。"
-    )
