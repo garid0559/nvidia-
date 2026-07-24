@@ -4,7 +4,7 @@
 2. NVIDIA GPU 販売データの可視化・分析
 
 実行方法:
-    streamlit run app_report_final_v2.py
+    streamlit run app_report_final_v3.py
 """
 
 import streamlit as st
@@ -138,6 +138,8 @@ st.dataframe(df)         # 表を表示
 st.pyplot(fig)           # matplotlib/seabornの図を表示
 st.sidebar.multiselect(...)  # フィルタUI
 ```
+"""
+        )
 
 # ===========================================================
 # TAB 2: データ分析レポート
@@ -261,4 +263,3 @@ with tab_analysis:
     ax7.set_title("数値変数間の相関ヒートマップ")
     fig7.tight_layout()
     st.pyplot(fig7)
-
